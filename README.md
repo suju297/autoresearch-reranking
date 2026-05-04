@@ -29,17 +29,17 @@ xychart-beta
     bar [0.262157, 0.661389, 0.252578]
 ```
 
-Iteration outcomes:
+Evaluated FiQA dev iterations:
 
 ```mermaid
-flowchart LR
-    A["91 autonomous iterations"] --> B["41 brain_error<br/>invalid strategy output"]
-    A --> C["50 evaluated attempts"]
-    C --> D["43 discard<br/>failed metric, guardrail, repeat, or promotion"]
-    C --> E["7 crash<br/>runtime failure or missing metrics"]
-    F["101 benchmark summary rows"] --> G["16 keep rows"]
-    G --> H["Current kept checkpoint<br/>BGE-base baseline d903213"]
+xychart-beta
+    title "fast_ndcg@10 by evaluated iteration"
+    x-axis ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
+    y-axis "fast_ndcg@10" 0 --> 0.30
+    line [0.000000, 0.276227, 0.276227, 0.265246, 0.262157, 0.262157, 0.276227, 0.276227, 0.262157, 0.276227, 0.276227, 0.267624, 0.278969, 0.000000, 0.000000, 0.266026, 0.276227, 0.000000, 0.262157, 0.000000, 0.262157, 0.266026, 0.262096, 0.262142]
 ```
+
+`0.262157` is the current kept FiQA dev BGE-base baseline. Iterations above it were still discarded when repeat, latency, memory, or promotion checks failed.
 
 Kept checkpoint steps:
 
