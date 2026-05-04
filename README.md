@@ -31,7 +31,7 @@ xychart-beta
 
 Evaluated FiQA dev iterations:
 
-![FiQA iteration progress](docs/fiqa-iteration-progress.png)
+![FiQA iteration progress](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/fiqa-iteration-progress.png)
 
 `0.262157` is the current kept FiQA dev BGE-base baseline. Iterations above it were still discarded when repeat, latency, memory, or promotion checks failed.
 
