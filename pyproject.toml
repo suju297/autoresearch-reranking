@@ -1,0 +1,24 @@
+[project]
+name = "autoresearch-reranking"
+version = "0.1.0"
+description = "Minimal local reranking harness inspired by karpathy/autoresearch."
+requires-python = ">=3.11"
+dependencies = [
+    "accelerate>=1.2,<2",
+    "ir_datasets",
+    "ir-measures>=0.4,<0.5",
+    "llama-cpp-python>=0.3.20,<0.4",
+    "sentence-transformers>=5.1.2,<5.2",
+]
+
+[project.scripts]
+autoresearch-reranking = "autoresearch_reranking_cli:main"
+autoresearch-reranking-kaggle = "kaggle_t4_cli:main"
+autoresearch-reranking-kaggle-kernel = "kaggle_kernel:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["prepare", "eval", "rerank_strategy", "train", "run", "local_brain", "strategy_worker", "strategy_runner", "autoresearch_driver", "history_report", "proposal_validator", "autoresearch_reranking_cli", "kaggle_t4_cli", "kaggle_kernel"]

@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+.venv/
+.DS_Store
+*.egg-info/
+artifacts/
+runs/
+history/
+dist/
+results.tsv
+run.log
+upstream-autoresearch/
+* 2.py
+*.pyc
+*.pyo
