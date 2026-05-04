@@ -31,7 +31,7 @@ xychart-beta
 
 Autoresearch progress across all benchmark results:
 
-![Autoresearch progress across 101 benchmark results](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/autoresearch-progress-101.png)
+![Autoresearch progress across 101 benchmark results](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/autoresearch-progress-101.png?v=no-overlap)
 
 The green step is the best accepted result so far. Orange points are raw `ndcg@10` gains that were not kept because promotion, repeat, latency, memory, or guardrail checks failed.
 
