@@ -31,13 +31,7 @@ xychart-beta
 
 Evaluated FiQA dev iterations:
 
-```mermaid
-xychart-beta
-    title "fast_ndcg@10 by evaluated iteration"
-    x-axis ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
-    y-axis "fast_ndcg@10" 0 --> 0.30
-    line [0.000000, 0.276227, 0.276227, 0.265246, 0.262157, 0.262157, 0.276227, 0.276227, 0.262157, 0.276227, 0.276227, 0.267624, 0.278969, 0.000000, 0.000000, 0.266026, 0.276227, 0.000000, 0.262157, 0.000000, 0.262157, 0.266026, 0.262096, 0.262142]
-```
+![FiQA iteration progress](docs/fiqa-iteration-progress.png)
 
 `0.262157` is the current kept FiQA dev BGE-base baseline. Iterations above it were still discarded when repeat, latency, memory, or promotion checks failed.
 
