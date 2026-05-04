@@ -29,11 +29,11 @@ xychart-beta
     bar [0.262157, 0.661389, 0.252578]
 ```
 
-Evaluated FiQA dev iterations:
+Autoresearch progress across all benchmark results:
 
-![FiQA iteration progress](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/fiqa-iteration-progress.png)
+![Autoresearch progress across 101 benchmark results](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/autoresearch-progress-101.png)
 
-`0.262157` is the current kept FiQA dev BGE-base baseline. Iterations above it were still discarded when repeat, latency, memory, or promotion checks failed.
+The green step is the best accepted result so far. Orange points are raw `ndcg@10` gains that were not kept because promotion, repeat, latency, memory, or guardrail checks failed.
 
 Kept checkpoint steps:
 
