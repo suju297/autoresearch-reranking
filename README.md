@@ -29,6 +29,26 @@ xychart-beta
     bar [0.262157, 0.661389, 0.252578]
 ```
 
+Iteration outcomes:
+
+```mermaid
+flowchart LR
+    A["91 autonomous iterations"] --> B["41 brain_error<br/>invalid strategy output"]
+    A --> C["50 evaluated attempts"]
+    C --> D["43 discard<br/>failed metric, guardrail, repeat, or promotion"]
+    C --> E["7 crash<br/>runtime failure or missing metrics"]
+    F["101 benchmark summary rows"] --> G["16 keep rows"]
+    G --> H["Current kept checkpoint<br/>BGE-base baseline d903213"]
+```
+
+Kept checkpoint steps:
+
+| Step | Kept checkpoint | Benchmark | `ndcg@10` | Why it was kept |
+|---:|---|---|---:|---|
+| 1 | `fiqa-dev-bge-base-baseline` | `fast-fiqa-dev` | 0.262157 | fast-loop BGE-base baseline |
+| 2 | `promotion-scifact-bge-base-baseline` | `promotion-scifact` | 0.661389 | promotion BGE-base baseline |
+| 3 | `fiqa-test-bge-base-baseline` | `report-fiqa-test` | 0.252578 | held-out report BGE-base baseline |
+
 Strong raw results that were not kept:
 
 | Strategy | Benchmark | `ndcg@10` | Status | Reason |
