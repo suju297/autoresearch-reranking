@@ -21,13 +21,9 @@ Best kept results:
 | `promotion-scifact` | promotion check | 0.661389 | 0.859222 | 0.638659 | 887.763 | `keep` |
 | `report-fiqa-test` | held-out report | 0.252578 | 0.477335 | 0.334911 | 776.991 | `keep` |
 
-```mermaid
-xychart-beta
-    title "Best kept ndcg@10"
-    x-axis ["FiQA dev", "SciFact promotion", "FiQA test"]
-    y-axis "ndcg@10" 0 --> 0.70
-    bar [0.262157, 0.661389, 0.252578]
-```
+Base reranker versus the best raw score found:
+
+![Base reranker versus best raw score found](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/base-vs-best-raw-comparison.png?v=base-vs-raw)
 
 Autoresearch progress across all benchmark results:
 
@@ -51,6 +47,8 @@ Strong raw results that were not kept:
 | `shorter-truncation-policy/promotion` | `promotion-scifact` | 0.679487 | `discard` | guardrail regression |
 | `improve-rerank-score` | `diverse-nano` | 0.092585 | `discard` | guardrail regression |
 
+`diverse-nano` is an internal smoke-test benchmark slice used for cheap early checks. It is not a market model, product, or public benchmark family.
+
 ## Findings
 
 - The fixed `BAAI/bge-reranker-base` baseline is the best accepted strategy so far.
@@ -58,6 +56,16 @@ Strong raw results that were not kept:
 - `fusion_weight` and `score_normalization` produced weaker accepted signal in the current history.
 - Many loop failures were `brain_error`, where the controller produced invalid `rerank_strategy.py` code or unsupported strategy keys.
 - The keep policy rejected several high-`ndcg@10` runs because they failed latency, memory, repeat-run, or promotion checks.
+
+## Market Context
+
+This repo has not benchmarked commercial or newer open rerankers inside the same harness yet. Current market options include:
+
+| Type | Examples | Notes |
+|---|---|---|
+| Hosted rerank APIs | [Cohere `rerank-v4.0-pro` / `rerank-v4.0-fast`](https://docs.cohere.com/docs/rerank), [Voyage `rerank-2.5` / `rerank-2.5-lite`](https://docs.voyageai.com/docs/reranker) | production APIs for reranking retrieved documents |
+| Vector DB inference | [Pinecone `bge-reranker-v2-m3`](https://docs.pinecone.io/models/bge-reranker-v2-m3) | hosted inference around an open reranker |
+| Self-host or open weights | `BAAI/bge-reranker-v2-m3`, [Qwen3-Reranker 0.6B/4B/8B](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B), [Jina reranker v3](https://huggingface.co/jinaai/jina-reranker-v3), `mixedbread-ai/mxbai-rerank-large-v2` | stronger candidates to test next against the same frozen artifacts |
 
 ## Metric Policy
 
