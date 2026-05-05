@@ -8,13 +8,16 @@ from sentence_transformers import CrossEncoder
 
 
 # This is the only file the agent should edit.
-MODEL_NAME = "BAAI/bge-reranker-base"
-MODEL_BATCH_SIZE = int(os.environ.get("AUTORESEARCH_RERANK_MODEL_BATCH_SIZE", "4"))
-MODEL_MAX_LENGTH = int(os.environ.get("AUTORESEARCH_RERANK_MODEL_MAX_LENGTH", "512"))
+DEFAULT_MODEL_NAME = os.environ.get("AUTORESEARCH_RERANK_MODEL", "BAAI/bge-reranker-base")
+DEFAULT_MODEL_BATCH_SIZE = int(os.environ.get("AUTORESEARCH_RERANK_MODEL_BATCH_SIZE", "4"))
+DEFAULT_MODEL_MAX_LENGTH = int(os.environ.get("AUTORESEARCH_RERANK_MODEL_MAX_LENGTH", "512"))
 DEVICE = os.environ.get("AUTORESEARCH_RERANK_DEVICE", "")
 
 STRATEGY: Dict[str, object] = {
     "family": "baseline",
+    "model_name": DEFAULT_MODEL_NAME,
+    "model_batch_size": DEFAULT_MODEL_BATCH_SIZE,
+    "model_max_length": DEFAULT_MODEL_MAX_LENGTH,
     "candidate_k": 10,
     "score_normalization": "none",
     "fusion_weight": 1.0,
@@ -45,7 +48,7 @@ STRATEGY: Dict[str, object] = {
 }
 
 _RERANKER: CrossEncoder | None = None
-_RERANKER_NAME: str | None = None
+_RERANKER_KEY: tuple[str, int, str] | None = None
 
 
 def resolve_device() -> str:
@@ -60,24 +63,36 @@ def resolve_device() -> str:
 
 def strategy_config() -> Dict[str, object]:
     return {
-        "model_name": MODEL_NAME,
-        "model_batch_size": MODEL_BATCH_SIZE,
-        "model_max_length": MODEL_MAX_LENGTH,
         "device": resolve_device(),
         **STRATEGY,
     }
 
 
+def current_model_name() -> str:
+    return str(STRATEGY.get("model_name", DEFAULT_MODEL_NAME))
+
+
+def current_model_batch_size() -> int:
+    return int(STRATEGY.get("model_batch_size", DEFAULT_MODEL_BATCH_SIZE))
+
+
+def current_model_max_length() -> int:
+    return int(STRATEGY.get("model_max_length", DEFAULT_MODEL_MAX_LENGTH))
+
+
 def get_reranker() -> CrossEncoder:
-    global _RERANKER, _RERANKER_NAME
-    model_name = MODEL_NAME
-    if _RERANKER is None or _RERANKER_NAME != model_name:
+    global _RERANKER, _RERANKER_KEY
+    model_name = current_model_name()
+    model_max_length = current_model_max_length()
+    device = resolve_device()
+    cache_key = (model_name, model_max_length, device)
+    if _RERANKER is None or _RERANKER_KEY != cache_key:
         _RERANKER = CrossEncoder(
             model_name,
-            max_length=MODEL_MAX_LENGTH,
-            device=resolve_device(),
+            max_length=model_max_length,
+            device=device,
         )
-        _RERANKER_NAME = model_name
+        _RERANKER_KEY = cache_key
     return _RERANKER
 
 
@@ -192,7 +207,7 @@ def rerank_with_model(query: str, head: List[Dict[str, object]]) -> List[float]:
     pairs = [(query, truncate_text(str(candidate.get("text", "")))) for candidate in head]
     scores = reranker.predict(
         pairs,
-        batch_size=MODEL_BATCH_SIZE,
+        batch_size=current_model_batch_size(),
         show_progress_bar=False,
         convert_to_numpy=True,
     )

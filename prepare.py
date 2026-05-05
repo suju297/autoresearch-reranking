@@ -33,19 +33,6 @@ DATASET_PRESETS = {
     "report-fiqa-test": [
         "beir/fiqa/test",
     ],
-    "diverse-medium": [
-        "beir/scifact/test",
-        "beir/nfcorpus/test",
-        "nano-beir/webis-touche2020",
-        "nano-beir/dbpedia-entity",
-    ],
-    "diverse-nano": [
-        "nano-beir/fiqa",
-        "nano-beir/scifact",
-        "nano-beir/hotpotqa",
-        "nano-beir/webis-touche2020",
-        "nano-beir/dbpedia-entity",
-    ],
 }
 PRESET_TEST_FRACTIONS = {
     "fast-fiqa-dev": 0.0,

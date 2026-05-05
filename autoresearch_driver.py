@@ -126,8 +126,21 @@ PROMPT_FAMILY_CARDS_CHARS = 1100
 SUPPORTED_SCORE_NORMALIZATION = {"none", "minmax", "softsign"}
 SUPPORTED_TRUNCATION_MODES = {"head", "head_tail"}
 SUPPORTED_DEDUP_MODES = {"doc_id", "doc_id_text"}
+DEFAULT_RERANKER_MODEL = "BAAI/bge-reranker-base"
+DEFAULT_RERANKER_BATCH_SIZE = 4
+DEFAULT_RERANKER_MAX_LENGTH = 512
+SUPPORTED_RERANKER_MODELS = {
+    "BAAI/bge-reranker-base",
+    "BAAI/bge-reranker-large",
+    "BAAI/bge-reranker-v2-m3",
+    "cross-encoder/ms-marco-MiniLM-L6-v2",
+    "Qwen/Qwen3-Reranker-0.6B",
+}
 ALLOWED_STRATEGY_KEYS = {
     "family",
+    "model_name",
+    "model_batch_size",
+    "model_max_length",
     "candidate_k",
     "score_normalization",
     "fusion_weight",
@@ -146,6 +159,7 @@ AUTONOMOUS_FAMILY_ORDER = tuple(family for family in FAMILY_ORDER if family not 
 AUTONOMOUS_PRIORITY_FAMILY_ORDER = tuple(
     family
     for family in (
+        "reranker_model",
         "candidate_k",
         "truncation_policy",
         "query_type_heuristic",
@@ -990,6 +1004,23 @@ def normalize_strategy_mapping(strategy: Mapping[str, Any]) -> Dict[str, Any]:
             raise ValueError("`family` must be `baseline` or one of: " + ", ".join(FAMILY_ORDER))
         normalized["family"] = family
 
+    normalized["model_name"] = _coerce_enum(
+        normalized.get("model_name", DEFAULT_RERANKER_MODEL),
+        field_name="model_name",
+        allowed=SUPPORTED_RERANKER_MODELS,
+    )
+    normalized["model_batch_size"] = _coerce_int(
+        normalized.get("model_batch_size", DEFAULT_RERANKER_BATCH_SIZE),
+        field_name="model_batch_size",
+        minimum=1,
+        maximum=32,
+    )
+    normalized["model_max_length"] = _coerce_int(
+        normalized.get("model_max_length", DEFAULT_RERANKER_MAX_LENGTH),
+        field_name="model_max_length",
+        minimum=128,
+        maximum=4096,
+    )
     normalized["candidate_k"] = _coerce_int(
         normalized.get("candidate_k", 10),
         field_name="candidate_k",
@@ -1161,7 +1192,20 @@ def synthesize_strategy_code_from_idea(code: str, idea: ProposalIdea) -> str:
     strategy = load_strategy_mapping(code)
     family = idea.family
     strategy["family"] = family
-    if family == "candidate_k":
+    if family == "reranker_model":
+        current = str(strategy.get("model_name", DEFAULT_RERANKER_MODEL))
+        model_order = [
+            "BAAI/bge-reranker-v2-m3",
+            "BAAI/bge-reranker-large",
+            "Qwen/Qwen3-Reranker-0.6B",
+            "cross-encoder/ms-marco-MiniLM-L6-v2",
+            "BAAI/bge-reranker-base",
+        ]
+        target = next((model for model in model_order if model != current), DEFAULT_RERANKER_MODEL)
+        strategy["model_name"] = target
+        strategy["model_max_length"] = 1024 if target in {"BAAI/bge-reranker-v2-m3", "Qwen/Qwen3-Reranker-0.6B"} else 512
+        strategy["model_batch_size"] = 2 if target in {"BAAI/bge-reranker-large", "Qwen/Qwen3-Reranker-0.6B"} else 4
+    elif family == "candidate_k":
         current = int(strategy.get("candidate_k", 10))
         target = extract_integer_hint(idea.label, idea.hypothesis, idea.primary_mechanism)
         if target is None or target == current:
@@ -1285,6 +1329,7 @@ def validate_review_content(content: str) -> None:
 
 def fallback_trial_ideas(loop_results: List[Mapping[str, Any]], *, search_plan: Mapping[str, Any] | None = None) -> List[str]:
     templates = {
+        "reranker_model": "Test a public reranker checkpoint such as bge-reranker-v2-m3 under the same frozen artifacts before spending more loops on small parameter edits.",
         "candidate_k": "Test a nearby rerank depth such as candidate_k = 12 or 13 to keep most of the gain from deeper reranking without repeating the full head-size-15 jump.",
         "score_normalization": "Normalize reranker and retrieval scores before fusion so the blend is less sensitive to scale drift across datasets.",
         "fusion_weight": "Blend retrieval_score into the final ranking only as a tie-break or small residual weight instead of a dominant factor.",
@@ -1361,7 +1406,7 @@ def fallback_review_content(
         f"Recent results are dominated by `{dominant_failure}` outcomes"
         + (f", with `{repeated_family}` appearing most often." if repeated_family != "none" else ".")
     )
-    guidance = "Bias future trials toward changes that can survive the promotion benchmark, not just improve one nano benchmark."
+    guidance = "Bias future trials toward changes that can survive the promotion benchmark, not just improve one small smoke benchmark."
     next_region = ", ".join(f"`{family}`" for family in next_families) if next_families else "`candidate_k`"
     if best_fast is not None and best_fast.get("label") == "rerank-head-size-15":
         next_region = "`candidate_k` near the successful head-size-15 result, then `score_normalization` or `fusion_weight` variants that preserve promotion stability"
@@ -1547,6 +1592,9 @@ def playbook_family_cards(families: List[str], *, max_chars: int = 3200) -> str:
 
 def runtime_schema_excerpt() -> str:
     lines = [
+        f"- `model_name`: one of {', '.join(f'`{value}`' for value in sorted(SUPPORTED_RERANKER_MODELS))}.",
+        "- `model_batch_size`: integer from 1 to 32.",
+        "- `model_max_length`: integer from 128 to 4096.",
         "- `candidate_k`: integer from 1 to 100.",
         f"- `score_normalization`: one of {', '.join(f'`{value}`' for value in sorted(SUPPORTED_SCORE_NORMALIZATION))}.",
         "- `fusion_weight`: numeric float from 0.0 to 1.0. Do not use strings such as `rank_only`.",
@@ -1619,6 +1667,15 @@ def fallback_idea_for_family(family: str, loop_results: List[Mapping[str, Any]])
     if family not in AUTONOMOUS_FAMILY_ORDER:
         raise ValueError(f"family `{family}` is disabled for autonomous search")
     templates = {
+        "reranker_model": {
+            "hypothesis": "A newer public reranker checkpoint may improve public BEIR scores more than retuning the old fixed BGE-base checkpoint.",
+            "changed_keys": ["model_name", "model_max_length", "model_batch_size"],
+            "expected_ndcg_direction": "up",
+            "expected_recall_direction": "flat",
+            "expected_latency_direction": "up",
+            "promotion_risk": "medium",
+            "primary_mechanism": "model_name",
+        },
         "candidate_k": {
             "hypothesis": "A bounded change to candidate depth may surface more relevant items to the reranker without rewriting the whole policy.",
             "changed_keys": ["candidate_k"],
@@ -2063,7 +2120,7 @@ def build_reviewer_prompt(
         "",
         "Review the candidate ideas and pick exactly one.",
         "Pick only from the `Candidate Ideas` list below. Do not invent or reuse a rejected label.",
-        "Penalize duplicate mechanisms, vague `fusion_weight` nudges, ideas likely to hurt latency without clear upside, and ideas that only look good on one nano benchmark but are unlikely to survive promotion.",
+        "Penalize duplicate mechanisms, vague `fusion_weight` nudges, ideas likely to hurt latency without clear upside, and ideas that only look good on one small smoke benchmark but are unlikely to survive promotion.",
         f"Prefer target families for this `{search_plan.get('phase', 'explore')}` phase unless an off-target backup idea is clearly more novel and benchmark-aware.",
         "",
         "Return exactly one JSON object:",

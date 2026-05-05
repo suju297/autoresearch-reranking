@@ -2,16 +2,18 @@
 
 This repo adapts `karpathy/autoresearch` to offline document reranking. The agent can edit only `rerank_strategy.py`; the datasets, qrels, metrics, evaluator, and benchmark artifacts stay frozen.
 
-The current MVP is a local, git-native loop for testing reranking strategy changes against fixed IR benchmarks. It uses `ir_datasets`, `ir_measures`, Sentence Transformers `CrossEncoder`, and the fixed reranker `BAAI/bge-reranker-base`.
+The current MVP is a local, git-native loop for testing reranking strategy changes against fixed IR benchmarks. It uses `ir_datasets`, `ir_measures`, Sentence Transformers `CrossEncoder`, and the default reranker `BAAI/bge-reranker-base`.
 
 ## Results
 
 Result history reviewed:
 
 - `history/results-summary.csv`: 101 benchmark summary rows
+- Public benchmark rows used for reported comparison: 60
 - Status counts: 16 `keep`, 72 `discard`, 13 `crash`
 - `history/iterations.csv`: 91 autonomous iterations
 - Iteration outcomes: 43 `discard`, 41 `brain_error`, 7 `crash`
+- Internal smoke-test rows are excluded from public benchmark plots.
 
 Best kept results:
 
@@ -21,15 +23,15 @@ Best kept results:
 | `promotion-scifact` | promotion check | 0.661389 | 0.859222 | 0.638659 | 887.763 | `keep` |
 | `report-fiqa-test` | held-out report | 0.252578 | 0.477335 | 0.334911 | 776.991 | `keep` |
 
-Base reranker versus the best raw score found:
+Base reranker versus the best raw score found on public benchmark rows:
 
-![Base reranker versus best raw score found](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/base-vs-best-raw-comparison.png?v=base-vs-raw)
+![Base reranker versus best raw score found](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/base-vs-best-raw-comparison.png?v=public-only)
 
-Autoresearch progress across all benchmark results:
+Public benchmark progress:
 
-![Autoresearch progress across 101 benchmark results](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/autoresearch-progress-101.png?v=no-overlap)
+![Public benchmark progress](https://raw.githubusercontent.com/suju297/autoresearch-reranking/main/docs/public-benchmark-progress.png?v=public-only)
 
-The green step is the best accepted result so far. Orange points are raw `ndcg@10` gains that were not kept because promotion, repeat, latency, memory, or guardrail checks failed.
+Filled points are kept checkpoints. Open points are discarded runs, including raw `ndcg@10` gains that failed promotion, repeat, latency, memory, or guardrail checks.
 
 Kept checkpoint steps:
 
@@ -45,27 +47,30 @@ Strong raw results that were not kept:
 |---|---|---:|---|---|
 | `shorter-truncation-policy` | `fast-fiqa-dev` | 0.278969 | `discard` | promotion benchmark rejected candidate |
 | `shorter-truncation-policy/promotion` | `promotion-scifact` | 0.679487 | `discard` | guardrail regression |
-| `improve-rerank-score` | `diverse-nano` | 0.092585 | `discard` | guardrail regression |
-
-`diverse-nano` is an internal smoke-test benchmark slice used for cheap early checks. It is not a market model, product, or public benchmark family.
 
 ## Findings
 
 - The fixed `BAAI/bge-reranker-base` baseline is the best accepted strategy so far.
+- No autonomous iteration produced an accepted keep; the accepted rows are baselines and checkpoints.
 - `candidate_k` and `truncation_policy` produced the strongest raw `ndcg@10` movement.
-- `fusion_weight` and `score_normalization` produced weaker accepted signal in the current history.
+- Raw public-benchmark wins mostly failed memory, latency, repeat, or promotion guardrails.
+- Earlier loops spent too much budget on invalid proposals and non-public smoke-test rows.
 - Many loop failures were `brain_error`, where the controller produced invalid `rerank_strategy.py` code or unsupported strategy keys.
-- The keep policy rejected several high-`ndcg@10` runs because they failed latency, memory, repeat-run, or promotion checks.
+- The harness now exposes `reranker_model` as a bounded strategy family so newer public rerankers can be tested under the same frozen artifacts.
+
+See [docs/autoresearch-loop-analysis.md](docs/autoresearch-loop-analysis.md) for the history-based failure analysis.
 
 ## Market Context
 
-This repo has not benchmarked commercial or newer open rerankers inside the same harness yet. Current market options include:
+This repo has not benchmarked commercial rerank APIs inside the same harness yet. Current market options include:
 
 | Type | Examples | Notes |
 |---|---|---|
 | Hosted rerank APIs | [Cohere `rerank-v4.0-pro` / `rerank-v4.0-fast`](https://docs.cohere.com/docs/rerank), [Voyage `rerank-2.5` / `rerank-2.5-lite`](https://docs.voyageai.com/docs/reranker) | production APIs for reranking retrieved documents |
 | Vector DB inference | [Pinecone `bge-reranker-v2-m3`](https://docs.pinecone.io/models/bge-reranker-v2-m3) | hosted inference around an open reranker |
 | Self-host or open weights | `BAAI/bge-reranker-v2-m3`, [Qwen3-Reranker 0.6B/4B/8B](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B), [Jina reranker v3](https://huggingface.co/jinaai/jina-reranker-v3), `mixedbread-ai/mxbai-rerank-large-v2` | stronger candidates to test next against the same frozen artifacts |
+
+Public leaderboard comparison must be handled carefully. [MTEB](https://huggingface.co/spaces/mteb/leaderboard) Retrieval has public `FiQA2018` and `SciFact` columns, but those are retriever scores, not this repo's BM25-plus-reranker setup. MTEB Reranking uses different datasets. The closest next comparison is to run newer open rerankers such as `BAAI/bge-reranker-v2-m3` through this harness on the frozen BEIR FiQA and SciFact artifacts.
 
 ## Metric Policy
 
@@ -110,6 +115,10 @@ The controller uses [docs/reranking_playbook.md](docs/reranking_playbook.md) plu
 
 `rerank_strategy.py` supports these mechanism slots:
 
+- `reranker_model`
+- `model_name`
+- `model_batch_size`
+- `model_max_length`
 - `candidate_k`
 - `score_normalization`
 - `fusion_weight`

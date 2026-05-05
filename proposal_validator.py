@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
 
 FAMILY_SPECS: Dict[str, str] = {
+    "reranker_model": "change the reranker checkpoint or safe model runtime settings",
     "candidate_k": "change how many candidates are reranked or how candidate depth is chosen",
     "score_normalization": "change how reranker and retrieval scores are normalized before comparison or fusion",
     "fusion_weight": "change how reranker scores and retrieval scores are blended or tie-broken",
@@ -19,6 +20,12 @@ FAMILY_SPECS: Dict[str, str] = {
 }
 FAMILY_ORDER = tuple(FAMILY_SPECS.keys())
 FAMILY_ALIASES = {
+    "model": "reranker_model",
+    "model_choice": "reranker_model",
+    "model_name": "reranker_model",
+    "reranker": "reranker_model",
+    "reranker-choice": "reranker_model",
+    "reranker_model_choice": "reranker_model",
     "candidate-depth": "candidate_k",
     "candidate-k": "candidate_k",
     "candidate-head": "candidate_k",
@@ -37,6 +44,7 @@ FAMILY_ALIASES = {
     "query-heuristic": "query_type_heuristic",
 }
 FAMILY_KEYWORDS = {
+    "reranker_model": ("model_name", "reranker model", "checkpoint", "bge-reranker", "qwen3-reranker"),
     "candidate_k": ("candidate_k", "top-k", "topk", "head size", "candidate depth", "rerank more"),
     "score_normalization": ("normalize", "normalization", "minmax", "zscore", "scale score"),
     "fusion_weight": ("fusion", "blend", "weight", "retrieval score", "tie-break", "alpha"),
@@ -46,9 +54,18 @@ FAMILY_KEYWORDS = {
     "pre_rerank_filter": ("filter", "prefilter", "pre-rerank", "cheap filter", "term match"),
     "query_type_heuristic": ("query type", "entity", "long query", "short query", "heuristic"),
 }
+CHANGED_KEY_ALIASES = {
+    "model": "model_name",
+    "reranker": "model_name",
+    "reranker_model": "model_name",
+    "model_choice": "model_name",
+}
 EXPECTED_DIRECTIONS = {"up", "flat", "down", "slightly_up", "slightly_down"}
 PROMOTION_RISKS = {"low", "medium", "high"}
 KNOWN_CHANGED_KEYS = {
+    "model_name",
+    "model_batch_size",
+    "model_max_length",
     "candidate_k",
     "score_normalization",
     "fusion_weight",
@@ -57,8 +74,6 @@ KNOWN_CHANGED_KEYS = {
     "truncation_policy",
     "pre_rerank_filter",
     "query_type_heuristic",
-    "model_batch_size",
-    "model_max_length",
     "doc_max_chars",
 }
 COOLDOWN_DISCARD_THRESHOLD = 3
@@ -129,7 +144,9 @@ def normalize_changed_keys(values: Sequence[str]) -> List[str]:
         normalized = "_".join(part for part in normalized.split("_") if part)
         if not normalized:
             continue
-        normalized = FAMILY_ALIASES.get(normalized, normalized)
+        normalized = CHANGED_KEY_ALIASES.get(normalized, normalized)
+        if normalized not in KNOWN_CHANGED_KEYS:
+            normalized = FAMILY_ALIASES.get(normalized, normalized)
         keys.append(normalized)
     deduped = []
     for key in keys:

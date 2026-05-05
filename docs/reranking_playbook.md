@@ -14,6 +14,7 @@ Scope: this playbook is for the inner autoresearch loop. It is not a general IR 
 4. Do not repeat a recent failed family unless the mechanism is materially different.
 5. Never propose changes to the eval harness, dataset, metrics, logs, or driver.
 6. Use this playbook plus recent run history. Do not rely on live web search inside the loop.
+7. Use public benchmark families for reported progress; tiny smoke slices are for debugging only.
 
 ---
 
@@ -30,6 +31,35 @@ Scope: this playbook is for the inner autoresearch loop. It is not a general IR 
 ## 3. Proposal families
 
 Each proposal must belong to exactly one primary family.
+
+### Family M: `reranker_model`
+
+**What it changes**
+- The reranker checkpoint or safe runtime settings such as `model_max_length` and `model_batch_size`.
+
+**Why it can help**
+- A newer public reranker can move quality more than retuning small strategy parameters around an older fixed checkpoint.
+
+**When to try**
+- The fixed baseline is stable but parameter-level changes only produce raw gains that fail guardrails.
+- You need a public-market comparison under the same frozen artifacts.
+
+**Likely effect**
+- `ndcg@10`: up or down
+- `recall@100`: flat
+- latency: often up
+
+**Promotion risk**
+- Medium. Better models can still fail local latency or memory guardrails.
+
+**Good experiments**
+- Swap to one allowlisted public reranker and keep candidate generation, datasets, and metrics frozen.
+- Pair a larger model with a conservative `model_batch_size`.
+
+**Bad experiments**
+- Mixing a model swap with unrelated score, metadata, and filter changes.
+
+---
 
 ### Family A: `candidate_k`
 
@@ -279,6 +309,7 @@ Run the loop in two phases:
    - Downselect to the top 1 to 2 families and tune only those until the signal collapses or cooldown triggers.
 
 ### Prefer first
+- `reranker_model`
 - `candidate_k`
 - `truncation_policy`
 - `query_type_heuristic`
@@ -336,7 +367,7 @@ Do not propose these without a very strong benchmark-specific reason.
 3. Bigger `candidate_k` when latency is already near the ceiling.
 4. Hard filters when recall is already fragile.
 5. Metadata priors with no reliable metadata.
-6. Any hidden checkpoint swap in the daily inner loop.
+6. Any hidden checkpoint swap. Model changes must use the explicit `reranker_model` family.
 7. Any change that quietly expands the effective search space beyond the trust boundary.
 
 ---
@@ -401,6 +432,7 @@ Constraints:
 - Prefer interpretable mechanism changes over tiny parameter nudges.
 
 Available families:
+- reranker_model
 - candidate_k
 - score_normalization
 - fusion_weight
@@ -458,11 +490,11 @@ Instead:
 
 If the loop is currently collapsing into fusion-weight ideas, try these next in roughly this order:
 
-1. `candidate_k` with a real step change
-2. `truncation_policy` tied to document length
-3. small `metadata_boost` under a cheap query heuristic
-4. `query_type_heuristic` that switches between two already-approved settings
-5. conservative `dedup_filter` only after the loop has baseline coverage on the first four families
+1. `reranker_model` with one allowlisted public checkpoint
+2. `candidate_k` with a real step change
+3. `truncation_policy` tied to document length
+4. small `metadata_boost` under a cheap query heuristic
+5. `query_type_heuristic` that switches between two already-approved settings
 
 Avoid another fusion-weight run unless recent evidence strongly points there.
 
