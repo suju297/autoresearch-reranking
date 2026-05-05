@@ -13,12 +13,10 @@ dependencies = [
 
 [project.scripts]
 autoresearch-reranking = "autoresearch_reranking_cli:main"
-autoresearch-reranking-kaggle = "kaggle_t4_cli:main"
-autoresearch-reranking-kaggle-kernel = "kaggle_kernel:main"
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["prepare", "eval", "rerank_strategy", "train", "run", "local_brain", "strategy_worker", "strategy_runner", "autoresearch_driver", "history_report", "proposal_validator", "autoresearch_reranking_cli", "kaggle_t4_cli", "kaggle_kernel"]
+py-modules = ["prepare", "eval", "rerank_strategy", "train", "run", "local_brain", "strategy_worker", "strategy_runner", "autoresearch_driver", "history_report", "proposal_validator", "autoresearch_reranking_cli"]

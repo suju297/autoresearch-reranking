@@ -1,15 +1,41 @@
+# Python and local environment
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .venv/
-.DS_Store
+.env
+.env.*
 *.egg-info/
+*.pyc
+*.pyo
+
+# OS/editor noise
+.DS_Store
+
+# Generated experiment outputs
 artifacts/
 runs/
 history/
 dist/
 results.tsv
 run.log
+*.log
+
+# Local model/cache artifacts
+models/
+*.gguf
+*.safetensors
+*.pt
+*.pth
+
+# Local reference material not needed for the public runnable repo
 upstream-autoresearch/
+docs/auto-research-reranking-build-brief.md
+docs/deep-research-report.md
+docs/project-kickoff-checklist.md
+kaggle_kernel.py
+kaggle_t4_cli.py
+
+# Accidental duplicate files from cloud sync or local editors
 * 2.py
-*.pyc
-*.pyo
